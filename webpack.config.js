@@ -1,37 +1,57 @@
-let path = require('path');
-let webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
-    devtool: 'source-map',
-    entry: {
-        widget: [
-            path.join(__dirname, 'src', 'widget', 'widget-index.js')
-        ],
-        chat: [
-            path.join(__dirname, 'src', 'chat', 'chat-index.js')
-        ],
-    },
-    output: {
-        path: path.join(__dirname, 'dist', 'js'),
-        filename: '[name].js',
-        publicPath: '/js/'
-    },
-    module: {
-        loaders: [
-            { test: /\.js$/, loaders: ['babel'], include: path.join(__dirname, 'src') },
-            { test: /\.css$/, loader: 'style!css!sass', include: path.join(__dirname, 'css') },
+  mode: 'production', // Убирает необходимость отдельно плагин для минификации
+  devtool: 'source-map',
+  entry: {
+    widget: path.resolve(__dirname, 'src', 'widget', 'widget-index.js'),
+    chat: path.resolve(__dirname, 'src', 'chat', 'chat-index.js'),
+  },
+  output: {
+    path: path.resolve(__dirname, 'dist', 'js'),
+    filename: '[name].js',
+    publicPath: '/js/',
+    clean: true, // Очищает папку dist/js перед билдом
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: path.resolve(__dirname, 'src'),
+        use: {
+          loader: 'babel-loader',
+          options: {
+            // Убедись, что есть .babelrc или babel.config.json с настройками
+            cacheDirectory: true,
+          }
+        }
+      },
+      {
+        test: /\.css$/,
+        include: path.resolve(__dirname, 'css'),
+        use: [
+          'style-loader',
+          'css-loader',
+          'sass-loader' // если используешь sass, иначе убери
         ]
-    },
-    plugins: [
-        new webpack.DefinePlugin({
-            'process.env': {
-                'NODE_ENV': JSON.stringify('production')
-            }
-        }),
-        new webpack.optimize.UglifyJsPlugin({
-            compressor: {
-                warnings: false
-            }
-        })
+      }
     ]
+  },
+  optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin({
+      terserOptions: {
+        compress: {
+          warnings: false,
+        }
+      }
+    })],
+  },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('production')
+    }),
+  ]
 };
